@@ -1,0 +1,14 @@
+# Python virtual environment and generated files
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+# Windows-native tooling (large binaries and local metrics data)
+tools/
+data/
+downloads/
+# Private local configuration
+.env
+# Editor state
+.vscode/*.code-workspace
