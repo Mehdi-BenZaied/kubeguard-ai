@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+__pycache__
+.pytest_cache
+tools
+data
+grafana
+docs
+tests
+k8s
+*.pyc
+*.log
