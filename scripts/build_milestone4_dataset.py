@@ -23,6 +23,9 @@ PROMQL = {
     "request_rate_per_s": 'sum(rate(kubeguard_requests_total{namespace="kubeguard"}[5m]))',
     "error_rate_pct": '100 * sum(rate(kubeguard_requests_total{namespace="kubeguard",outcome="error"}[5m])) / clamp_min(sum(rate(kubeguard_requests_total{namespace="kubeguard"}[5m])), 1e-9)',
     "p95_latency_seconds": 'histogram_quantile(0.95, sum by (le) (rate(kubeguard_request_duration_seconds_bucket{namespace="kubeguard"}[5m])))',
+    "avg_latency_seconds": (
+    'sum(rate(kubeguard_request_duration_seconds_sum{namespace="kubeguard"}[5m])) '
+    '/ sum(rate(kubeguard_request_duration_seconds_count{namespace="kubeguard"}[5m]))'),
     "cpu_millicores": '1000 * sum(rate(container_cpu_usage_seconds_total{namespace="kubeguard",container="kubeguard-api"}[5m]))',
     "memory_mib": 'sum(container_memory_working_set_bytes{namespace="kubeguard",container="kubeguard-api"}) / 1024 / 1024',
     "cpu_throttle_pct": '100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace="kubeguard",container="kubeguard-api"}[5m])) / clamp_min(sum(rate(container_cpu_cfs_periods_total{namespace="kubeguard",container="kubeguard-api"}[5m])), 1e-9)',
