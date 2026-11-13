@@ -15,7 +15,7 @@ from prometheus_client import (
     generate_latest,
 )
 
-app = FastAPI(title="KubeGuard AI", version="0.1.0")
+app = FastAPI(title="KubeGuard AI", version="0.2.0")
 
 # Counter: total requests, separated by outcome.
 REQUESTS = Counter(
@@ -35,6 +35,7 @@ DURATION = Histogram(
 async def home():
     return {
         "project": "KubeGuard AI",
+        "version": "0.2.0",
         "docs": "/docs",
         "health": "/health",
         "metrics": "/metrics",

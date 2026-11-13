@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: kubeguard-api
-          image: docker.io/library/kubeguard-api:0.1
+          image: docker.io/library/kubeguard-api:0.2
           imagePullPolicy: Never
 
           ports:
