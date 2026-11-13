@@ -5,3 +5,8 @@ scrape_configs:
   - job_name: "kubeguard-api"
     static_configs:
       - targets: ["127.0.0.1:8000"]
+
+  - job_name: "windows-host"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["127.0.0.1:9182"]

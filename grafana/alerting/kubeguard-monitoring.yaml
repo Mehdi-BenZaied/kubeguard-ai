@@ -1,0 +1,160 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: kubeguard-monitoring
+      folder: KubeGuard AI
+      interval: 10s
+      rules:
+        - uid: fg401jxr3uk1sd
+          title: KubeGuardAPIUnavailable
+          condition: B
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: bg3zytgh6xhc0b
+              model:
+                editorMode: code
+                expr: up{job="kubeguard-api"}
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.5
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: B
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 30s
+          annotations:
+            description: Prometheus cannot scrape the KubeGuard FastAPI application on port 8000. Check whether the Python process is running.
+            summary: KubeGuard API is unavailable
+          isPaused: false
+          notification_settings:
+            receiver: empty
+        - uid: fg403i9q2m5mod
+          title: KubeGuardAPIHighErrorRate
+          condition: B
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: bg3zytgh6xhc0b
+              model:
+                editorMode: code
+                expr: "(\r\n  100 *\r\n  sum(rate(kubeguard_requests_total{\r\n    job=\"kubeguard-api\",\r\n    outcome=\"error\"\r\n  }[2m]))\r\n  /\r\n  clamp_min(\r\n    sum(rate(kubeguard_requests_total{\r\n      job=\"kubeguard-api\"\r\n    }[2m])),\r\n    0.001\r\n  )\r\n) or vector(0)"
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 20
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: B
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 20s
+          isPaused: false
+          notification_settings:
+            receiver: empty
+        - uid: fg404hyeh57uoe
+          title: KubeGuardAPIHighLatency
+          condition: B
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: bg3zytgh6xhc0b
+              model:
+                editorMode: code
+                expr: "histogram_quantile(\r\n  0.95,\r\n  sum by (le) (\r\n    rate(\r\n      kubeguard_request_duration_seconds_bucket{\r\n        job=\"kubeguard-api\"\r\n      }[2m]\r\n    )\r\n  )\r\n)"
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: B
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.5
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: B
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 20s
+          isPaused: false
+          notification_settings:
+            receiver: empty
