@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubeguard-incident-receiver
+  namespace: monitoring
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: kubeguard-incident-receiver
+  template:
+    metadata:
+      labels:
+        app: kubeguard-incident-receiver
+    spec:
+      automountServiceAccountToken: false
+      initContainers:
+        - name: prepare-storage
+          image: docker.io/library/kubeguard-api:0.2
+          imagePullPolicy: Never
+          command: ["sh", "-c", "chown -R 10001:10001 /data"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: incident-data
+              mountPath: /data
+      containers:
+        - name: receiver
+          image: docker.io/library/kubeguard-api:0.2
+          imagePullPolicy: Never
+          command: ["python", "-u", "/opt/receiver.py"]
+          securityContext:
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 8081
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+          resources:
+            requests:
+              cpu: 20m
+              memory: 48Mi
+            limits:
+              cpu: 150m
+              memory: 128Mi
+          volumeMounts:
+            - name: receiver-code
+              mountPath: /opt
+              readOnly: true
+            - name: incident-data
+              mountPath: /data
+      volumes:
+        - name: receiver-code
+          configMap:
+            name: kubeguard-incident-receiver
+        - name: incident-data
+          persistentVolumeClaim:
+            claimName: kubeguard-incidents
