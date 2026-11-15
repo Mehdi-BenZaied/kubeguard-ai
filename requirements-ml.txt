@@ -1,0 +1,3 @@
+# Milestone 5: exploratory anomaly detection
+scikit-learn>=1.3,<2
+joblib>=1.3,<2
