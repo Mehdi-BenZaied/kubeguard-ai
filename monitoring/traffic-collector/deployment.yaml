@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubeguard-traffic-collector
+  namespace: monitoring
+spec:
+  replicas: 1
+  # SQLite is single-writer. Never run two collector pods against the same PVC.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: kubeguard-traffic-collector
+  template:
+    metadata:
+      labels:
+        app: kubeguard-traffic-collector
+    spec:
+      serviceAccountName: kubeguard-traffic-collector
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # The MicroK8s hostpath provisioner may create a root-owned PVC mount.
+      # This init container only prepares /data/learning. It is not the agent.
+      initContainers:
+        - name: prepare-storage
+          image: docker.io/library/kubeguard-api:0.2
+          imagePullPolicy: Never
+          command: ["sh", "-c"]
+          args:
+            - mkdir -p /data/learning && chown 10001:10001 /data/learning && chmod 0700 /data/learning
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN", "FOWNER"]
+          volumeMounts:
+            - name: observations
+              mountPath: /data
+      containers:
+        - name: collector
+          # Reuse the working lab image already loaded in MicroK8s.
+          # A dedicated minimal pinned image is a later hardening task.
+          image: docker.io/library/kubeguard-api:0.2
+          imagePullPolicy: Never
+          command: ["python", "-u", "/opt/collector/collect_live_training_data_k8s.py"]
+          args: ["--samples", "0", "--interval-sec", "30"]
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 150m
+              memory: 128Mi
+          volumeMounts:
+            - name: collector-code
+              mountPath: /opt/collector
+              readOnly: true
+            - name: observations
+              mountPath: /data
+      volumes:
+        - name: collector-code
+          configMap:
+            name: kubeguard-traffic-collector-code
+            defaultMode: 0444
+        - name: observations
+          persistentVolumeClaim:
+            claimName: kubeguard-training-observations
