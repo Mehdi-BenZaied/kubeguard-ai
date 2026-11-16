@@ -1,0 +1,42 @@
+# Egress for DNS plus only the two known monitoring endpoints.
+# Requires a CNI enforcing Kubernetes NetworkPolicy; test it independently.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kubeguard-incident-agent-isolation
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: kubeguard-incident-agent
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 9090
+          protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app: kubeguard-incident-receiver
+      ports:
+        - port: 8081
+          protocol: TCP
