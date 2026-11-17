@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kubeguard-incident-receiver-isolation
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: kubeguard-incident-receiver
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kubeguard-incident-agent
+      ports:
+        - port: 8081
+          protocol: TCP
+  egress: []

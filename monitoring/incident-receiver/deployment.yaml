@@ -15,14 +15,31 @@ spec:
       labels:
         app: kubeguard-incident-receiver
     spec:
+      serviceAccountName: kubeguard-incident-receiver
       automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: prepare-storage
           image: docker.io/library/kubeguard-api:0.2
           imagePullPolicy: Never
-          command: ["sh", "-c", "chown -R 10001:10001 /data"]
+          command: ["sh", "-c"]
+          args:
+            - chown -R 10001:10001 /data && chmod 0700 /data && if [ -f /data/incidents.sqlite3 ]; then chmod 0600 /data/incidents.sqlite3; fi
           securityContext:
+            runAsNonRoot: false
             runAsUser: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN", "FOWNER", "DAC_OVERRIDE"]
           volumeMounts:
             - name: incident-data
               mountPath: /data
@@ -31,16 +48,25 @@ spec:
           image: docker.io/library/kubeguard-api:0.2
           imagePullPolicy: Never
           command: ["python", "-u", "/opt/receiver.py"]
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
           securityContext:
+            runAsNonRoot: true
             runAsUser: 10001
             runAsGroup: 10001
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 8081
           readinessProbe:
             httpGet:
               path: /health
               port: 8081
+            initialDelaySeconds: 2
+            periodSeconds: 10
           resources:
             requests:
               cpu: 20m
@@ -54,6 +80,9 @@ spec:
               readOnly: true
             - name: incident-data
               mountPath: /data
+            - name: notification-key
+              mountPath: /var/run/kubeguard-hmac
+              readOnly: true
       volumes:
         - name: receiver-code
           configMap:
@@ -61,3 +90,7 @@ spec:
         - name: incident-data
           persistentVolumeClaim:
             claimName: kubeguard-incidents
+        - name: notification-key
+          secret:
+            secretName: kubeguard-incident-hmac
+            defaultMode: 0440
