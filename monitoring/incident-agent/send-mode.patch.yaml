@@ -1,0 +1,11 @@
+spec:
+  template:
+    spec:
+      containers:
+        - name: agent
+          args:
+            - --send
+            - --samples
+            - "0"
+            - --interval-sec
+            - "30"
