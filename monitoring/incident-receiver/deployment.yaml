@@ -83,6 +83,9 @@ spec:
             - name: notification-key
               mountPath: /var/run/kubeguard-hmac
               readOnly: true
+            - name: evidence-read-key
+              mountPath: /var/run/kubeguard-evidence-key
+              readOnly: true
       volumes:
         - name: receiver-code
           configMap:
@@ -93,4 +96,8 @@ spec:
         - name: notification-key
           secret:
             secretName: kubeguard-incident-hmac
+            defaultMode: 0440
+        - name: evidence-read-key
+          secret:
+            secretName: kubeguard-evidence-read-hmac
             defaultMode: 0440

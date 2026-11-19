@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubeguard-evidence-collector
+  namespace: monitoring
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: kubeguard-evidence-collector
+  template:
+    metadata:
+      labels:
+        app: kubeguard-evidence-collector
+    spec:
+      serviceAccountName: kubeguard-evidence-collector
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: prepare-evidence-storage
+          image: docker.io/library/kubeguard-api:0.2
+          imagePullPolicy: Never
+          command: ["sh", "-c"]
+          args:
+            - mkdir -p /data/evidence && chown 10001:10001 /data/evidence && chmod 0700 /data/evidence
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN", "FOWNER"]
+          volumeMounts:
+            - name: evidence
+              mountPath: /data
+      containers:
+        - name: collector
+          image: docker.io/library/kubeguard-api:0.2
+          imagePullPolicy: Never
+          command: ["python", "-u", "/opt/evidence/collect_incident_evidence_k8s.py"]
+          args: ["--samples", "0", "--interval-sec", "30"]
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 150m
+              memory: 128Mi
+          volumeMounts:
+            - name: code
+              mountPath: /opt/evidence
+              readOnly: true
+            - name: evidence
+              mountPath: /data
+            - name: read-key
+              mountPath: /var/run/kubeguard-evidence-key
+              readOnly: true
+      volumes:
+        - name: code
+          configMap:
+            name: kubeguard-evidence-code
+            defaultMode: 0444
+        - name: evidence
+          persistentVolumeClaim:
+            claimName: kubeguard-evidence
+        - name: read-key
+          secret:
+            secretName: kubeguard-evidence-read-hmac
+            defaultMode: 0440
