@@ -1,0 +1,10 @@
+[Unit]
+Description=Publish new KubeGuard evidence every 5 minutes
+
+[Timer]
+OnCalendar=*-*-* *:00/5:00
+Persistent=true
+Unit=kubeguard-evidence-publisher.service
+
+[Install]
+WantedBy=timers.target

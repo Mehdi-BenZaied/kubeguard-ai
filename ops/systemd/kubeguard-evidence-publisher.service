@@ -1,0 +1,14 @@
+[Unit]
+Description=KubeGuard AI sanitized incident evidence publisher
+After=snap.microk8s.daemon-containerd.service
+
+[Service]
+Type=oneshot
+User=root
+Group=kubeguard-export
+WorkingDirectory=/
+Environment=HOME=/root
+Environment=PATH=/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+UMask=0077
+TimeoutStartSec=120
+ExecStart=/usr/bin/python3 /usr/local/libexec/kubeguard-publish-evidence.py
