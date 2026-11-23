@@ -34,6 +34,27 @@ def test_metrics():
     assert "kubeguard_requests_total" in response.text
     assert "kubeguard_request_duration_seconds_bucket" in response.text
 
+def test_request_counters_exist_before_first_request():
+    import subprocess
+    import sys
+
+    code = """
+from app.main import app
+from prometheus_client import generate_latest
+
+metrics = generate_latest().decode("utf-8")
+
+assert 'kubeguard_requests_total{outcome="success"} 0.0' in metrics
+assert 'kubeguard_requests_total{outcome="error"} 0.0' in metrics
+"""
+
+    subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
 
 def test_invalid_delay():
     response = client.get("/work?delay_ms=9000")

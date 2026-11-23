@@ -24,6 +24,11 @@ REQUESTS = Counter(
     ["outcome"],
 )
 
+# Expose both known outcomes even before the first /work request.
+REQUESTS.labels(outcome="success")
+REQUESTS.labels(outcome="error")
+
+
 # Histogram: observed request durations in seconds.
 DURATION = Histogram(
     "kubeguard_request_duration_seconds",
